@@ -30,6 +30,12 @@ curl -L -o data/churn_raw.csv \
   "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv"
 ```
 
+On Windows PowerShell:
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv" -OutFile "data\churn_raw.csv"
+```
+
 ## Running the pipeline
 
 Run from the project root, in this order:
@@ -57,7 +63,9 @@ Interactive docs: http://127.0.0.1:8000/docs
 | GET | `/model-info` | Model type, decision threshold, held-out metrics |
 | POST | `/predict` | Churn probability for one customer |
 
-### Example
+### Example request
+
+macOS / Linux:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/predict \
@@ -72,6 +80,24 @@ curl -X POST http://127.0.0.1:8000/predict \
   }'
 ```
 
+Windows PowerShell — `curl` is an alias for `Invoke-WebRequest` there, so the
+bash form above will not run. Use:
+
+```powershell
+$body = @{
+  gender="Female"; SeniorCitizen=0; Partner="No"; Dependents="No"
+  tenure=1; PhoneService="Yes"; MultipleLines="No"
+  InternetService="Fiber optic"; OnlineSecurity="No"; OnlineBackup="No"
+  DeviceProtection="No"; TechSupport="No"; StreamingTV="No"
+  StreamingMovies="No"; Contract="Month-to-month"; PaperlessBilling="Yes"
+  PaymentMethod="Electronic check"; MonthlyCharges=85.0; TotalCharges=85.0
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/predict" -Method Post -Body $body -ContentType "application/json"
+```
+
+Both return:
+
 ```json
 {
   "churn_probability": 0.6943,
@@ -80,6 +106,10 @@ curl -X POST http://127.0.0.1:8000/predict \
   "threshold": 0.25
 }
 ```
+
+This customer is high risk because several signals compound: one month of
+tenure, a month-to-month contract, the fiber optic tier, electronic check
+payment, and no support add-ons.
 
 Invalid categories are rejected with a `422` before reaching the model, so an
 unknown value can never be silently encoded as all-zeros and produce a
